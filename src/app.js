@@ -13,6 +13,7 @@ app.use(cors({
     "http://localhost:3000"  // (si usas CRA en desarrollo)
 
   ],
+  allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
