@@ -9,6 +9,7 @@ app.use(cors({
     "https://gestionar-carrera-frontend-g4ay0abwd-jose-cossios-projects.vercel.app", // dominio de Vercel
     "http://localhost:5173", // (si usas Vite en desarrollo)
     "http://localhost:10000", // (si usas CRA en desarrollo)
+    "https://doblesanroque.vercel.app",
     "http://localhost:3000"  // (si usas CRA en desarrollo)
 
   ],
