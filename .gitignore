@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Compilaciones (si las hubiera)
+dist/
+build/
+
+# Configuraciones locales de IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de Docker (si no quieres subirlos, opcional)
+# Dockerfile
+# docker-compose.yml
+
+# Archivos de lock (opcional si no quieres compartir versiones exactas)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml

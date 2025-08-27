@@ -1,0 +1,9 @@
+{
+  "database.connections": [
+    {
+      "name": "Supabase Project",
+      "driver": "PostgreSQL",
+      "connectionString": "postgresql://postgres:k6q4uULO38V3kv9C@db.varcmvsghmpmyhadfkrp.supabase.co:5432/postgres"
+    }
+  ]
+}
