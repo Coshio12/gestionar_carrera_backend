@@ -5,12 +5,16 @@ const app = express();
 
 // CORS más permisivo para desarrollo
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173','http://localhost:10000','*'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  origin: [
+    "https://gestionar-carrera-frontend-g4ay0abwd-jose-cossios-projects.vercel.app", // dominio de Vercel
+    "http://localhost:5173", // (si usas Vite en desarrollo)
+    "http://localhost:10000", // (si usas CRA en desarrollo)
+    "http://localhost:3000"  // (si usas CRA en desarrollo)
 
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 // Middleware para parsear JSON
 app.use(express.json());
 
