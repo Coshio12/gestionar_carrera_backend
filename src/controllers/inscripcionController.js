@@ -74,6 +74,17 @@ exports.getParticipanteById = async (req, res) => {
 exports.updateParticipante = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('=== updateParticipante - Inicio ===');
+    console.log('ID:', id);
+    console.log('Body:', req.body);
+    console.log('Files:', req.files);
+
+    // Verificar si se recibieron datos
+    if (!req.body || Object.keys(req.body).length === 0) {
+      console.log('Error: No se recibieron datos');
+      return res.status(400).json({ error: 'No se recibieron datos para actualizar' });
+    }
+
     const {
       nombre,
       apellidos,
@@ -90,12 +101,31 @@ exports.updateParticipante = async (req, res) => {
       autorizacion_url
     } = req.body;
 
+    const files = req.files;
+
     // Validar campos requeridos
     if (!nombre || !apellidos || !ci || !fecha_nacimiento || !dorsal || !categoria_id || !metodo_pago) {
+      console.log('Error: Faltan campos requeridos');
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
+    // Validar año de nacimiento
+    const birthDate = new Date(fecha_nacimiento);
+    if (birthDate.getFullYear() > 2011) {
+      console.log('Error: Año superior a 2011');
+      return res.status(400).json({ error: 'Solo se admiten participantes nacidos desde el año 2011 en adelante' });
+    }
+
+    // Calcular edad para validar autorización
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
     // Verificar si el CI o dorsal ya existe en otro participante
+    console.log('Verificando CI y dorsal existentes...');
     const { data: existingParticipant, error: checkError } = await supabase
       .from('participantes')
       .select('id, ci, dorsal')
@@ -103,34 +133,219 @@ exports.updateParticipante = async (req, res) => {
       .neq('id', id);
 
     if (checkError) {
+      console.error('Error verificando participante existente:', checkError);
       return res.status(500).json({ error: 'Error verificando participante existente' });
     }
 
     if (existingParticipant && existingParticipant.length > 0) {
       const existing = existingParticipant[0];
       if (existing.ci === ci) {
+        console.log('Error: CI ya existe en otro participante');
         return res.status(400).json({ error: 'Ya existe otro participante con este CI' });
       }
-      if (existing.dorsal === dorsal) {
+      if (existing.dorsal === parseInt(dorsal)) {
+        console.log('Error: Dorsal ya existe en otro participante');
         return res.status(400).json({ error: 'Ya existe otro participante con este dorsal' });
       }
     }
 
-    const participanteActualizado = {
+    // Obtener datos actuales del participante
+    const { data: currentParticipant, error: getCurrentError } = await supabase
+      .from('participantes')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (getCurrentError) {
+      console.error('Error obteniendo participante actual:', getCurrentError);
+      return res.status(500).json({ error: 'Error obteniendo datos actuales del participante' });
+    }
+
+    if (!currentParticipant) {
+      return res.status(404).json({ error: 'Participante no encontrado' });
+    }
+
+    // Preparar datos para actualización
+    let participanteActualizado = {
       nombre,
       apellidos,
       ci,
       fecha_nacimiento,
-      dorsal,
-      categoria_id,
+      dorsal: parseInt(dorsal),
+      categoria_id: parseInt(categoria_id),
       equipo: equipo || null,
       metodo_pago,
-      comprobante_url: comprobante_url || null,
       comunidad: comunidad || null,
-      foto_anverso_url: foto_anverso_url || null,
-      foto_reverso_url: foto_reverso_url || null,
-      autorizacion_url: autorizacion_url || null
+      // Mantener URLs existentes por defecto
+      comprobante_url: comprobante_url || currentParticipant.comprobante_url,
+      foto_anverso_url: foto_anverso_url || currentParticipant.foto_anverso_url,
+      foto_reverso_url: foto_reverso_url || currentParticipant.foto_reverso_url,
+      autorizacion_url: autorizacion_url || currentParticipant.autorizacion_url
     };
+
+    // Si hay archivos nuevos, subirlos
+    if (files && Object.keys(files).length > 0) {
+      console.log('Procesando archivos nuevos...');
+
+      // Validar que si se sube una foto del CI, se suban ambas
+      if ((files.foto_anverso && !files.foto_reverso) || (!files.foto_anverso && files.foto_reverso)) {
+        console.log('Error: Fotos de CI incompletas');
+        return res.status(400).json({ 
+          error: 'Si actualiza las fotos del CI, debe subir tanto el anverso como el reverso' 
+        });
+      }
+
+      // Validar autorización para menores de edad
+      if (age < 18 && !files.autorizacion && !currentParticipant.autorizacion_url) {
+        console.log('Error: Menor de edad sin autorización');
+        return res.status(400).json({ 
+          error: 'Para participantes menores de 18 años es obligatorio tener la autorización' 
+        });
+      }
+
+      const uploadPromises = [];
+      const filesToDelete = []; // Para eliminar archivos antiguos si es necesario
+
+      // Subir comprobante
+      if (files.comprobante && files.comprobante[0]) {
+        const file = files.comprobante[0];
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `comprobantes/${ci}_comprobante_${Date.now()}.${fileExt}`;
+
+        if (currentParticipant.comprobante_url) {
+          filesToDelete.push(currentParticipant.comprobante_url);
+        }
+
+        uploadPromises.push(
+          supabase.storage
+            .from('participantes')
+            .upload(fileName, file.buffer, {
+              contentType: file.mimetype,
+              cacheControl: '3600',
+              upsert: false,
+            })
+            .then(({ data, error }) => {
+              if (error) throw error;
+              participanteActualizado.comprobante_url = data.path;
+              console.log('Comprobante actualizado:', data.path);
+            })
+        );
+      }
+
+      // Subir foto anverso CI
+      if (files.foto_anverso && files.foto_anverso[0]) {
+        const file = files.foto_anverso[0];
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `ci_fotos/${ci}_anverso_${Date.now()}.${fileExt}`;
+
+        if (currentParticipant.foto_anverso_url) {
+          filesToDelete.push(currentParticipant.foto_anverso_url);
+        }
+
+        uploadPromises.push(
+          supabase.storage
+            .from('participantes')
+            .upload(fileName, file.buffer, {
+              contentType: file.mimetype,
+              cacheControl: '3600',
+              upsert: false,
+            })
+            .then(({ data, error }) => {
+              if (error) throw error;
+              participanteActualizado.foto_anverso_url = data.path;
+              console.log('Foto anverso actualizada:', data.path);
+            })
+        );
+      }
+
+      // Subir foto reverso CI
+      if (files.foto_reverso && files.foto_reverso[0]) {
+        const file = files.foto_reverso[0];
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `ci_fotos/${ci}_reverso_${Date.now()}.${fileExt}`;
+
+        if (currentParticipant.foto_reverso_url) {
+          filesToDelete.push(currentParticipant.foto_reverso_url);
+        }
+
+        uploadPromises.push(
+          supabase.storage
+            .from('participantes')
+            .upload(fileName, file.buffer, {
+              contentType: file.mimetype,
+              cacheControl: '3600',
+              upsert: false,
+            })
+            .then(({ data, error }) => {
+              if (error) throw error;
+              participanteActualizado.foto_reverso_url = data.path;
+              console.log('Foto reverso actualizada:', data.path);
+            })
+        );
+      }
+
+      // Subir autorización
+      if (files.autorizacion && files.autorizacion[0]) {
+        const file = files.autorizacion[0];
+        const fileExt = file.originalname.split('.').pop();
+        const fileName = `autorizaciones/${ci}_autorizacion_${Date.now()}.${fileExt}`;
+
+        if (currentParticipant.autorizacion_url) {
+          filesToDelete.push(currentParticipant.autorizacion_url);
+        }
+
+        uploadPromises.push(
+          supabase.storage
+            .from('participantes')
+            .upload(fileName, file.buffer, {
+              contentType: file.mimetype,
+              cacheControl: '3600',
+              upsert: false,
+            })
+            .then(({ data, error }) => {
+              if (error) throw error;
+              participanteActualizado.autorizacion_url = data.path;
+              console.log('Autorización actualizada:', data.path);
+            })
+        );
+      }
+
+      // Esperar a que se suban todos los archivos
+      try {
+        console.log('Esperando subida de archivos...');
+        await Promise.all(uploadPromises);
+        console.log('Todos los archivos subidos exitosamente');
+
+        // Eliminar archivos antiguos
+        if (filesToDelete.length > 0) {
+          try {
+            await supabase.storage
+              .from('participantes')
+              .remove(filesToDelete);
+            console.log('Archivos antiguos eliminados');
+          } catch (deleteError) {
+            console.warn('Error eliminando archivos antiguos:', deleteError);
+          }
+        }
+      } catch (uploadError) {
+        console.error('Error en subida de archivos:', uploadError);
+        return res.status(500).json({ 
+          error: 'Error subiendo archivos: ' + uploadError.message 
+        });
+      }
+    } else {
+      // Sin archivos nuevos, validar autorización existente para menores
+      if (age < 18 && !currentParticipant.autorizacion_url) {
+        console.log('Error: Menor de edad sin autorización existente');
+        return res.status(400).json({ 
+          error: 'Para participantes menores de 18 años es obligatorio tener la autorización' 
+        });
+      }
+    }
+
+    // Actualizar participante en la base de datos
+    console.log('Actualizando participante en base de datos...');
+    console.log('Datos finales:', participanteActualizado);
 
     const { data, error } = await supabase
       .from('participantes')
@@ -142,21 +357,32 @@ exports.updateParticipante = async (req, res) => {
       `);
 
     if (error) {
-      console.error('Error actualizando participante:', error);
-      return res.status(500).json({ error: 'Error actualizando participante' });
+      console.error('Error actualizando participante en BD:', error);
+      return res.status(500).json({ error: 'Error actualizando participante: ' + error.message });
     }
 
     if (!data || data.length === 0) {
+      console.log('Error: Participante no encontrado para actualizar');
       return res.status(404).json({ error: 'Participante no encontrado' });
     }
 
+    console.log('Participante actualizado exitosamente:', data[0]);
+
+    const successMessage = age < 18 
+      ? `Participante ${nombre} ${apellidos} (menor de edad) actualizado correctamente con dorsal ${dorsal}`
+      : `Participante ${nombre} ${apellidos} actualizado correctamente con dorsal ${dorsal}`;
+
     res.json({ 
-      message: 'Participante actualizado con éxito',
+      message: successMessage,
       participante: data[0]
     });
+
   } catch (err) {
-    console.error('Error actualizando participante:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('Error general actualizando participante:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ 
+      error: 'Error interno del servidor: ' + err.message 
+    });
   }
 };
 

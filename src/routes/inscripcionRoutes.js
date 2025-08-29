@@ -70,7 +70,18 @@ router.post('/participantes',
   inscripcionController.createParticipanteAdmin
 );
 
-router.put('/participantes/:id', authenticateToken, inscripcionController.updateParticipante);
+// FIX: Añadir multer middleware para la ruta de actualización
+router.put('/participantes/:id', 
+  authenticateToken,
+  upload.fields([
+    { name: 'comprobante', maxCount: 1 },
+    { name: 'foto_anverso', maxCount: 1 },
+    { name: 'foto_reverso', maxCount: 1 },
+    { name: 'autorizacion', maxCount: 1 }
+  ]),
+  inscripcionController.updateParticipante
+);
+
 router.delete('/participantes/:id', authenticateToken, inscripcionController.deleteParticipante);
 router.get('/check-dorsal/:dorsal', authenticateToken, inscripcionController.checkDorsal);
 
