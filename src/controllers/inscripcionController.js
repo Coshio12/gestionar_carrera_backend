@@ -212,11 +212,11 @@ exports.createParticipantePublico = async (req, res) => {
       age--;
     }
 
-    // Validar edad mínima
-    // if (age < 18) {
-    //   console.log('Error: Edad menor a 18 años');
-    //   return res.status(400).json({ error: 'Debe ser mayor de 16 años para participar' });
-    // }
+    // Validar año minimo
+    if (birthDate.getFullYear() < 2011) {
+      console.log('Error: Año superior a 2011');
+      return res.status(400).json({ error: 'Solo se admiten participantes nacidos desde el año 2011 en adelante' });
+    }
 
     // Validar autorización para menores de edad
     if (age < 18 && (!files.autorizacion || !files.autorizacion[0])) {
