@@ -172,7 +172,7 @@ exports.updateParticipante = async (req, res) => {
       ci,
       fecha_nacimiento,
       dorsal: parseInt(dorsal),
-      categoria_id: parseInt(categoria_id),
+      categoria_id: categoria_id, // No convertir a integer, mantener como UUID string
       equipo: equipo || null,
       metodo_pago,
       comunidad: comunidad || null,
