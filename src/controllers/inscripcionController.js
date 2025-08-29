@@ -213,8 +213,8 @@ exports.createParticipantePublico = async (req, res) => {
     }
 
     // Validar edad mínima
-    if (age < 16) {
-      console.log('Error: Edad menor a 16 años');
+    if (age < 18) {
+      console.log('Error: Edad menor a 18 años');
       return res.status(400).json({ error: 'Debe ser mayor de 16 años para participar' });
     }
 
