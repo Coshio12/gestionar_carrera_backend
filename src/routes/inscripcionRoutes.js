@@ -24,7 +24,7 @@ const upload = multer({
 router.get('/categorias', inscripcionController.getCategorias);
 router.get('/equipos', inscripcionController.getEquipos);
 
-// RUTA PÚBLICA PARA INSCRIPCIÓN (actualizada para manejar múltiples archivos)
+// RUTA PÚBLICA PARA INSCRIPCIÓN (actualizada para manejar múltiples archivos incluyendo autorización)
 router.post('/participantes/publico', 
   (req, res, next) => {
     console.log('Llegó petición a /participantes/publico');
@@ -33,7 +33,8 @@ router.post('/participantes/publico',
   upload.fields([
     { name: 'comprobante', maxCount: 1 },
     { name: 'foto_anverso', maxCount: 1 },
-    { name: 'foto_reverso', maxCount: 1 }
+    { name: 'foto_reverso', maxCount: 1 },
+    { name: 'autorizacion', maxCount: 1 }
   ]), 
   (req, res, next) => {
     console.log('Files received:', req.files);
@@ -56,7 +57,8 @@ router.post('/upload-archivos',
   upload.fields([
     { name: 'comprobante', maxCount: 1 },
     { name: 'foto_anverso', maxCount: 1 },
-    { name: 'foto_reverso', maxCount: 1 }
+    { name: 'foto_reverso', maxCount: 1 },
+    { name: 'autorizacion', maxCount: 1 }
   ]), 
   inscripcionController.uploadArchivos
 );

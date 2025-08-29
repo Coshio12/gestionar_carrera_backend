@@ -86,7 +86,8 @@ exports.updateParticipante = async (req, res) => {
       comprobante_url,
       comunidad,
       foto_anverso_url,
-      foto_reverso_url
+      foto_reverso_url,
+      autorizacion_url
     } = req.body;
 
     // Validar campos requeridos
@@ -127,7 +128,8 @@ exports.updateParticipante = async (req, res) => {
       comprobante_url: comprobante_url || null,
       comunidad: comunidad || null,
       foto_anverso_url: foto_anverso_url || null,
-      foto_reverso_url: foto_reverso_url || null
+      foto_reverso_url: foto_reverso_url || null,
+      autorizacion_url: autorizacion_url || null
     };
 
     const { data, error } = await supabase
@@ -216,6 +218,12 @@ exports.createParticipantePublico = async (req, res) => {
       return res.status(400).json({ error: 'Debe ser mayor de 16 años para participar' });
     }
 
+    // Validar autorización para menores de edad
+    if (age < 18 && (!files.autorizacion || !files.autorizacion[0])) {
+      console.log('Error: Menor de edad sin autorización');
+      return res.status(400).json({ error: 'Para participantes menores de 18 años es obligatorio subir la autorización firmada por los padres/tutores' });
+    }
+
     // Verificar si el CI ya existe
     console.log('Verificando CI existente...');
     const { data: existingParticipant, error: checkError } = await supabase
@@ -239,6 +247,7 @@ exports.createParticipantePublico = async (req, res) => {
     let comprobante_url = null;
     let foto_anverso_url = null;
     let foto_reverso_url = null;
+    let autorizacion_url = null;
 
     // Subir comprobante
     if (files.comprobante && files.comprobante[0]) {
@@ -315,6 +324,31 @@ exports.createParticipantePublico = async (req, res) => {
       );
     }
 
+    // Subir autorización (si existe)
+    if (files.autorizacion && files.autorizacion[0]) {
+      const file = files.autorizacion[0];
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `autorizaciones/${ci}_autorizacion_${Date.now()}.${fileExt}`;
+
+      uploadPromises.push(
+        supabase.storage
+          .from('participantes')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+          })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error subiendo autorización:', error);
+              throw error;
+            }
+            console.log('Autorización subida:', data.path);
+            autorizacion_url = data.path;
+          })
+      );
+    }
+
     // Esperar a que se suban todos los archivos
     try {
       console.log('Esperando subida de archivos...');
@@ -325,21 +359,22 @@ exports.createParticipantePublico = async (req, res) => {
       return res.status(500).json({ error: 'Error subiendo archivos: ' + uploadError.message });
     }
 
-    // Crear participante (dorsal se asignará automáticamente como null)
+    // Crear participante
     console.log('Creando participante en base de datos...');
     const nuevoParticipante = {
       nombre,
       apellidos,
       ci,
       fecha_nacimiento,
-      dorsal: req.body.dorsal || null, // Se asignará posteriormente por el admin
+      dorsal: req.body.dorsal || null,
       categoria_id,
       equipo: equipo || null,
       metodo_pago,
       comprobante_url,
       comunidad,
       foto_anverso_url,
-      foto_reverso_url
+      foto_reverso_url,
+      autorizacion_url
     };
 
     console.log('Datos del participante:', nuevoParticipante);
@@ -397,6 +432,7 @@ exports.deleteParticipante = async (req, res) => {
     if (existingParticipant.comprobante_url) filesToDelete.push(existingParticipant.comprobante_url);
     if (existingParticipant.foto_anverso_url) filesToDelete.push(existingParticipant.foto_anverso_url);
     if (existingParticipant.foto_reverso_url) filesToDelete.push(existingParticipant.foto_reverso_url);
+    if (existingParticipant.autorizacion_url) filesToDelete.push(existingParticipant.autorizacion_url);
 
     if (filesToDelete.length > 0) {
       try {
@@ -454,7 +490,23 @@ exports.uploadArchivos = async (req, res) => {
         }
 
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `${fieldName}/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+        let fileName;
+        
+        // Definir carpeta según tipo de archivo
+        switch(fieldName) {
+          case 'comprobante':
+            fileName = `comprobantes/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            break;
+          case 'foto_anverso':
+          case 'foto_reverso':
+            fileName = `ci_fotos/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            break;
+          case 'autorizacion':
+            fileName = `autorizaciones/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            break;
+          default:
+            fileName = `${fieldName}/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+        }
 
         uploadPromises.push(
           supabase.storage
@@ -496,7 +548,8 @@ exports.createParticipante = async (req, res) => {
       comprobante_url,
       comunidad,
       foto_anverso_url,
-      foto_reverso_url
+      foto_reverso_url,
+      autorizacion_url
     } = req.body;
 
     // Validar campos requeridos
@@ -536,7 +589,8 @@ exports.createParticipante = async (req, res) => {
       comprobante_url: comprobante_url || null,
       comunidad: comunidad || null,
       foto_anverso_url: foto_anverso_url || null,
-      foto_reverso_url: foto_reverso_url || null
+      foto_reverso_url: foto_reverso_url || null,
+      autorizacion_url: autorizacion_url || null
     };
 
     const { data, error } = await supabase
