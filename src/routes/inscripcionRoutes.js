@@ -24,7 +24,7 @@ const upload = multer({
 router.get('/categorias', inscripcionController.getCategorias);
 router.get('/equipos', inscripcionController.getEquipos);
 
-// RUTA PÚBLICA PARA INSCRIPCIÓN (actualizada para manejar múltiples archivos incluyendo autorización)
+// RUTA PÚBLICA PARA INSCRIPCIÓN (funciona correctamente)
 router.post('/participantes/publico', 
   (req, res, next) => {
     console.log('Llegó petición a /participantes/publico');
@@ -48,10 +48,32 @@ router.post('/participantes/publico',
 router.get('/participantes', authenticateToken, inscripcionController.getParticipantes);
 router.get('/participantes/:id', authenticateToken, inscripcionController.getParticipanteById);
 router.get('/archivo/:path', authenticateToken, inscripcionController.getArchivoUrl);
-router.post('/participantes', authenticateToken, inscripcionController.createParticipante);
+
+// NUEVA RUTA PARA CREAR PARTICIPANTE DESDE ADMIN (con archivos)
+router.post('/participantes', 
+  authenticateToken,
+  (req, res, next) => {
+    console.log('Llegó petición a /participantes (admin)');
+    next();
+  },
+  upload.fields([
+    { name: 'comprobante', maxCount: 1 },
+    { name: 'foto_anverso', maxCount: 1 },
+    { name: 'foto_reverso', maxCount: 1 },
+    { name: 'autorizacion', maxCount: 1 }
+  ]), 
+  (req, res, next) => {
+    console.log('Admin - Files received:', req.files);
+    console.log('Admin - Body received:', req.body);
+    next();
+  },
+  inscripcionController.createParticipanteAdmin
+);
+
 router.put('/participantes/:id', authenticateToken, inscripcionController.updateParticipante);
 router.delete('/participantes/:id', authenticateToken, inscripcionController.deleteParticipante);
 router.get('/check-dorsal/:dorsal', authenticateToken, inscripcionController.checkDorsal);
+
 router.post('/upload-archivos', 
   authenticateToken, 
   upload.fields([

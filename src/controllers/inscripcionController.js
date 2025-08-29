@@ -534,8 +534,12 @@ exports.uploadArchivos = async (req, res) => {
 };
 
 // Crear nuevo participante (admin)
-exports.createParticipante = async (req, res) => {
+exports.createParticipanteAdmin = async (req, res) => {
   try {
+    console.log('=== createParticipanteAdmin - Inicio ===');
+    console.log('Body:', req.body);
+    console.log('Files:', req.files);
+
     const {
       nombre,
       apellidos,
@@ -545,38 +549,199 @@ exports.createParticipante = async (req, res) => {
       categoria_id,
       equipo,
       metodo_pago,
-      comprobante_url,
-      comunidad,
-      foto_anverso_url,
-      foto_reverso_url,
-      autorizacion_url
+      comunidad
     } = req.body;
 
-    // Validar campos requeridos
-    if (!nombre || !apellidos || !ci || !fecha_nacimiento || !dorsal || !categoria_id || !metodo_pago) {
-      return res.status(400).json({ error: 'Faltan campos requeridos' });
+    const files = req.files;
+
+    // Validar campos requeridos (incluye dorsal)
+    if (!nombre || !apellidos || !ci || !fecha_nacimiento || !categoria_id || !metodo_pago || !comunidad || !dorsal) {
+      console.log('Error: Faltan campos requeridos');
+      return res.status(400).json({ error: 'Faltan campos requeridos (incluye dorsal)' });
+    }
+
+    // Validar que hay comprobante y fotos del CI
+    if (!files) {
+      console.log('Error: No se recibieron archivos');
+      return res.status(400).json({ error: 'No se recibieron archivos' });
+    }
+
+    if (!files.comprobante || !files.foto_anverso || !files.foto_reverso) {
+      console.log('Error: Faltan archivos requeridos');
+      console.log('Comprobante:', !!files.comprobante);
+      console.log('Foto anverso:', !!files.foto_anverso);
+      console.log('Foto reverso:', !!files.foto_reverso);
+      return res.status(400).json({ 
+        error: 'Debe subir el comprobante de pago y las fotos del CI (anverso y reverso)' 
+      });
+    }
+
+    // Calcular edad basada en fecha de nacimiento
+    const birthDate = new Date(fecha_nacimiento);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+
+    // Validar año mínimo
+    if (birthDate.getFullYear() < 2011) {
+      console.log('Error: Año superior a 2011');
+      return res.status(400).json({ error: 'Solo se admiten participantes nacidos desde el año 2011 en adelante' });
+    }
+
+    // Validar autorización para menores de edad
+    if (age < 18 && (!files.autorizacion || !files.autorizacion[0])) {
+      console.log('Error: Menor de edad sin autorización');
+      return res.status(400).json({ error: 'Para participantes menores de 18 años es obligatorio subir la autorización firmada por los padres/tutores' });
     }
 
     // Verificar si el CI o dorsal ya existe
+    console.log('Verificando CI y dorsal existentes...');
     const { data: existingParticipant, error: checkError } = await supabase
       .from('participantes')
       .select('ci, dorsal')
       .or(`ci.eq.${ci},dorsal.eq.${dorsal}`);
 
     if (checkError) {
+      console.error('Error verificando participante:', checkError);
       return res.status(500).json({ error: 'Error verificando participante existente' });
     }
 
     if (existingParticipant && existingParticipant.length > 0) {
       const existing = existingParticipant[0];
       if (existing.ci === ci) {
+        console.log('Error: CI ya existe');
         return res.status(400).json({ error: 'Ya existe un participante con este CI' });
       }
       if (existing.dorsal === dorsal) {
+        console.log('Error: Dorsal ya existe');
         return res.status(400).json({ error: 'Ya existe un participante con este dorsal' });
       }
     }
 
+    // Subir archivos
+    console.log('Iniciando subida de archivos...');
+    const uploadPromises = [];
+    let comprobante_url = null;
+    let foto_anverso_url = null;
+    let foto_reverso_url = null;
+    let autorizacion_url = null;
+
+    // Subir comprobante
+    if (files.comprobante && files.comprobante[0]) {
+      const file = files.comprobante[0];
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `comprobantes/${ci}_comprobante_${Date.now()}.${fileExt}`;
+
+      uploadPromises.push(
+        supabase.storage
+          .from('participantes')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+          })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error subiendo comprobante:', error);
+              throw error;
+            }
+            console.log('Comprobante subido:', data.path);
+            comprobante_url = data.path;
+          })
+      );
+    }
+
+    // Subir foto anverso CI
+    if (files.foto_anverso && files.foto_anverso[0]) {
+      const file = files.foto_anverso[0];
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `ci_fotos/${ci}_anverso_${Date.now()}.${fileExt}`;
+
+      uploadPromises.push(
+        supabase.storage
+          .from('participantes')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+          })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error subiendo foto anverso:', error);
+              throw error;
+            }
+            console.log('Foto anverso subida:', data.path);
+            foto_anverso_url = data.path;
+          })
+      );
+    }
+
+    // Subir foto reverso CI
+    if (files.foto_reverso && files.foto_reverso[0]) {
+      const file = files.foto_reverso[0];
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `ci_fotos/${ci}_reverso_${Date.now()}.${fileExt}`;
+
+      uploadPromises.push(
+        supabase.storage
+          .from('participantes')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+          })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error subiendo foto reverso:', error);
+              throw error;
+            }
+            console.log('Foto reverso subida:', data.path);
+            foto_reverso_url = data.path;
+          })
+      );
+    }
+
+    // Subir autorización (si existe)
+    if (files.autorizacion && files.autorizacion[0]) {
+      const file = files.autorizacion[0];
+      const fileExt = file.originalname.split('.').pop();
+      const fileName = `autorizaciones/${ci}_autorizacion_${Date.now()}.${fileExt}`;
+
+      uploadPromises.push(
+        supabase.storage
+          .from('participantes')
+          .upload(fileName, file.buffer, {
+            contentType: file.mimetype,
+            cacheControl: '3600',
+            upsert: false,
+          })
+          .then(({ data, error }) => {
+            if (error) {
+              console.error('Error subiendo autorización:', error);
+              throw error;
+            }
+            console.log('Autorización subida:', data.path);
+            autorizacion_url = data.path;
+          })
+      );
+    }
+
+    // Esperar a que se suban todos los archivos
+    try {
+      console.log('Esperando subida de archivos...');
+      await Promise.all(uploadPromises);
+      console.log('Todos los archivos subidos exitosamente');
+    } catch (uploadError) {
+      console.error('Error en subida de archivos:', uploadError);
+      return res.status(500).json({ error: 'Error subiendo archivos: ' + uploadError.message });
+    }
+
+    // Crear participante
+    console.log('Creando participante en base de datos...');
     const nuevoParticipante = {
       nombre,
       apellidos,
@@ -586,30 +751,41 @@ exports.createParticipante = async (req, res) => {
       categoria_id,
       equipo: equipo || null,
       metodo_pago,
-      comprobante_url: comprobante_url || null,
-      comunidad: comunidad || null,
-      foto_anverso_url: foto_anverso_url || null,
-      foto_reverso_url: foto_reverso_url || null,
-      autorizacion_url: autorizacion_url || null
+      comprobante_url,
+      comunidad,
+      foto_anverso_url,
+      foto_reverso_url,
+      autorizacion_url
     };
+
+    console.log('Datos del participante (admin):', nuevoParticipante);
 
     const { data, error } = await supabase
       .from('participantes')
       .insert(nuevoParticipante)
-      .select();
+      .select(`
+        *,
+        categorias(nombre)
+      `);
 
     if (error) {
       console.error('Error insertando participante:', error);
-      return res.status(500).json({ error: 'Error registrando participante' });
+      return res.status(500).json({ error: 'Error registrando participante: ' + error.message });
     }
 
+    console.log('Participante creado exitosamente (admin):', data[0]);
+
     res.status(201).json({ 
-      message: 'Participante registrado con éxito',
+      message: `Participante registrado con éxito con dorsal ${dorsal}.`,
       participante: data[0]
     });
+
   } catch (err) {
-    console.error('Error creando participante:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
+    console.error('Error general creando participante admin:', err);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ 
+      error: 'Error interno del servidor: ' + err.message 
+    });
   }
 };
 
