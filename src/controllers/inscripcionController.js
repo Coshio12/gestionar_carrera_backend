@@ -143,7 +143,7 @@ exports.updateParticipante = async (req, res) => {
         console.log('Error: CI ya existe en otro participante');
         return res.status(400).json({ error: 'Ya existe otro participante con este CI' });
       }
-      if (existing.dorsal === parseInt(dorsal)) {
+      if (existing.dorsal === dorsal) { // Ahora comparamos como string
         console.log('Error: Dorsal ya existe en otro participante');
         return res.status(400).json({ error: 'Ya existe otro participante con este dorsal' });
       }
@@ -165,17 +165,17 @@ exports.updateParticipante = async (req, res) => {
       return res.status(404).json({ error: 'Participante no encontrado' });
     }
 
-    // Preparar datos para actualización
+    // Preparar datos para actualización - TODO EN MAYÚSCULAS
     let participanteActualizado = {
-      nombre,
-      apellidos,
-      ci,
+      nombre: nombre.toUpperCase(),
+      apellidos: apellidos.toUpperCase(),
+      ci: ci.toUpperCase(),
       fecha_nacimiento,
-      dorsal: parseInt(dorsal),
-      categoria_id: categoria_id, // No convertir a integer, mantener como UUID string
-      equipo: equipo || null,
-      metodo_pago,
-      comunidad: comunidad || null,
+      dorsal: dorsal, // Mantener como string para preservar ceros iniciales
+      categoria_id: categoria_id,
+      equipo: equipo ? equipo.toUpperCase() : null,
+      metodo_pago: metodo_pago.toUpperCase(),
+      comunidad: comunidad ? comunidad.toUpperCase() : null,
       // Mantener URLs existentes por defecto
       comprobante_url: comprobante_url || currentParticipant.comprobante_url,
       foto_anverso_url: foto_anverso_url || currentParticipant.foto_anverso_url,
@@ -210,7 +210,7 @@ exports.updateParticipante = async (req, res) => {
       if (files.comprobante && files.comprobante[0]) {
         const file = files.comprobante[0];
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `comprobantes/${ci}_comprobante_${Date.now()}.${fileExt}`;
+        const fileName = `comprobantes/${ci.toUpperCase()}_comprobante_${Date.now()}.${fileExt}`;
 
         if (currentParticipant.comprobante_url) {
           filesToDelete.push(currentParticipant.comprobante_url);
@@ -236,7 +236,7 @@ exports.updateParticipante = async (req, res) => {
       if (files.foto_anverso && files.foto_anverso[0]) {
         const file = files.foto_anverso[0];
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `ci_fotos/${ci}_anverso_${Date.now()}.${fileExt}`;
+        const fileName = `ci_fotos/${ci.toUpperCase()}_anverso_${Date.now()}.${fileExt}`;
 
         if (currentParticipant.foto_anverso_url) {
           filesToDelete.push(currentParticipant.foto_anverso_url);
@@ -262,7 +262,7 @@ exports.updateParticipante = async (req, res) => {
       if (files.foto_reverso && files.foto_reverso[0]) {
         const file = files.foto_reverso[0];
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `ci_fotos/${ci}_reverso_${Date.now()}.${fileExt}`;
+        const fileName = `ci_fotos/${ci.toUpperCase()}_reverso_${Date.now()}.${fileExt}`;
 
         if (currentParticipant.foto_reverso_url) {
           filesToDelete.push(currentParticipant.foto_reverso_url);
@@ -288,7 +288,7 @@ exports.updateParticipante = async (req, res) => {
       if (files.autorizacion && files.autorizacion[0]) {
         const file = files.autorizacion[0];
         const fileExt = file.originalname.split('.').pop();
-        const fileName = `autorizaciones/${ci}_autorizacion_${Date.now()}.${fileExt}`;
+        const fileName = `autorizaciones/${ci.toUpperCase()}_autorizacion_${Date.now()}.${fileExt}`;
 
         if (currentParticipant.autorizacion_url) {
           filesToDelete.push(currentParticipant.autorizacion_url);
@@ -369,8 +369,8 @@ exports.updateParticipante = async (req, res) => {
     console.log('Participante actualizado exitosamente:', data[0]);
 
     const successMessage = age < 18 
-      ? `Participante ${nombre} ${apellidos} (menor de edad) actualizado correctamente con dorsal ${dorsal}`
-      : `Participante ${nombre} ${apellidos} actualizado correctamente con dorsal ${dorsal}`;
+      ? `Participante ${nombre.toUpperCase()} ${apellidos.toUpperCase()} (menor de edad) actualizado correctamente con dorsal ${dorsal}`
+      : `Participante ${nombre.toUpperCase()} ${apellidos.toUpperCase()} actualizado correctamente con dorsal ${dorsal}`;
 
     res.json({ 
       message: successMessage,
@@ -455,7 +455,7 @@ exports.createParticipantePublico = async (req, res) => {
     const { data: existingParticipant, error: checkError } = await supabase
       .from('participantes')
       .select('ci')
-      .eq('ci', ci);
+      .eq('ci', ci.toUpperCase());
 
     if (checkError) {
       console.error('Error verificando CI:', checkError);
@@ -479,7 +479,7 @@ exports.createParticipantePublico = async (req, res) => {
     if (files.comprobante && files.comprobante[0]) {
       const file = files.comprobante[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `comprobantes/${ci}_comprobante_${Date.now()}.${fileExt}`;
+      const fileName = `comprobantes/${ci.toUpperCase()}_comprobante_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -504,7 +504,7 @@ exports.createParticipantePublico = async (req, res) => {
     if (files.foto_anverso && files.foto_anverso[0]) {
       const file = files.foto_anverso[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `ci_fotos/${ci}_anverso_${Date.now()}.${fileExt}`;
+      const fileName = `ci_fotos/${ci.toUpperCase()}_anverso_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -529,7 +529,7 @@ exports.createParticipantePublico = async (req, res) => {
     if (files.foto_reverso && files.foto_reverso[0]) {
       const file = files.foto_reverso[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `ci_fotos/${ci}_reverso_${Date.now()}.${fileExt}`;
+      const fileName = `ci_fotos/${ci.toUpperCase()}_reverso_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -550,11 +550,11 @@ exports.createParticipantePublico = async (req, res) => {
       );
     }
 
-    // Subir autorización (si existe)
+    // Subir autorización
     if (files.autorizacion && files.autorizacion[0]) {
       const file = files.autorizacion[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `autorizaciones/${ci}_autorizacion_${Date.now()}.${fileExt}`;
+      const fileName = `autorizaciones/${ci.toUpperCase()}_autorizacion_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -585,19 +585,19 @@ exports.createParticipantePublico = async (req, res) => {
       return res.status(500).json({ error: 'Error subiendo archivos: ' + uploadError.message });
     }
 
-    // Crear participante
+    // Crear participante - TODO EN MAYÚSCULAS
     console.log('Creando participante en base de datos...');
     const nuevoParticipante = {
-      nombre,
-      apellidos,
-      ci,
+      nombre: nombre.toUpperCase(),
+      apellidos: apellidos.toUpperCase(),
+      ci: ci.toUpperCase(),
       fecha_nacimiento,
-      dorsal: req.body.dorsal || null,
+      dorsal: req.body.dorsal || null, // Mantener como string si viene en el body
       categoria_id,
-      equipo: equipo || null,
-      metodo_pago,
+      equipo: equipo ? equipo.toUpperCase() : null,
+      metodo_pago: metodo_pago.toUpperCase(),
       comprobante_url,
-      comunidad,
+      comunidad: comunidad.toUpperCase(),
       foto_anverso_url,
       foto_reverso_url,
       autorizacion_url
@@ -721,17 +721,17 @@ exports.uploadArchivos = async (req, res) => {
         // Definir carpeta según tipo de archivo
         switch(fieldName) {
           case 'comprobante':
-            fileName = `comprobantes/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            fileName = `comprobantes/${ci.toUpperCase()}_${fieldName}_${Date.now()}.${fileExt}`;
             break;
           case 'foto_anverso':
           case 'foto_reverso':
-            fileName = `ci_fotos/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            fileName = `ci_fotos/${ci.toUpperCase()}_${fieldName}_${Date.now()}.${fileExt}`;
             break;
           case 'autorizacion':
-            fileName = `autorizaciones/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            fileName = `autorizaciones/${ci.toUpperCase()}_${fieldName}_${Date.now()}.${fileExt}`;
             break;
           default:
-            fileName = `${fieldName}/${ci}_${fieldName}_${Date.now()}.${fileExt}`;
+            fileName = `${fieldName}/${ci.toUpperCase()}_${fieldName}_${Date.now()}.${fileExt}`;
         }
 
         uploadPromises.push(
@@ -829,7 +829,7 @@ exports.createParticipanteAdmin = async (req, res) => {
     const { data: existingParticipant, error: checkError } = await supabase
       .from('participantes')
       .select('ci, dorsal')
-      .or(`ci.eq.${ci},dorsal.eq.${dorsal}`);
+      .or(`ci.eq.${ci.toUpperCase()},dorsal.eq.${dorsal}`);
 
     if (checkError) {
       console.error('Error verificando participante:', checkError);
@@ -838,11 +838,11 @@ exports.createParticipanteAdmin = async (req, res) => {
 
     if (existingParticipant && existingParticipant.length > 0) {
       const existing = existingParticipant[0];
-      if (existing.ci === ci) {
+      if (existing.ci === ci.toUpperCase()) {
         console.log('Error: CI ya existe');
         return res.status(400).json({ error: 'Ya existe un participante con este CI' });
       }
-      if (existing.dorsal === dorsal) {
+      if (existing.dorsal === dorsal) { // Comparación como string
         console.log('Error: Dorsal ya existe');
         return res.status(400).json({ error: 'Ya existe un participante con este dorsal' });
       }
@@ -860,7 +860,7 @@ exports.createParticipanteAdmin = async (req, res) => {
     if (files.comprobante && files.comprobante[0]) {
       const file = files.comprobante[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `comprobantes/${ci}_comprobante_${Date.now()}.${fileExt}`;
+      const fileName = `comprobantes/${ci.toUpperCase()}_comprobante_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -885,7 +885,7 @@ exports.createParticipanteAdmin = async (req, res) => {
     if (files.foto_anverso && files.foto_anverso[0]) {
       const file = files.foto_anverso[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `ci_fotos/${ci}_anverso_${Date.now()}.${fileExt}`;
+      const fileName = `ci_fotos/${ci.toUpperCase()}_anverso_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -910,7 +910,7 @@ exports.createParticipanteAdmin = async (req, res) => {
     if (files.foto_reverso && files.foto_reverso[0]) {
       const file = files.foto_reverso[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `ci_fotos/${ci}_reverso_${Date.now()}.${fileExt}`;
+      const fileName = `ci_fotos/${ci.toUpperCase()}_reverso_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -935,7 +935,7 @@ exports.createParticipanteAdmin = async (req, res) => {
     if (files.autorizacion && files.autorizacion[0]) {
       const file = files.autorizacion[0];
       const fileExt = file.originalname.split('.').pop();
-      const fileName = `autorizaciones/${ci}_autorizacion_${Date.now()}.${fileExt}`;
+      const fileName = `autorizaciones/${ci.toUpperCase()}_autorizacion_${Date.now()}.${fileExt}`;
 
       uploadPromises.push(
         supabase.storage
@@ -966,19 +966,19 @@ exports.createParticipanteAdmin = async (req, res) => {
       return res.status(500).json({ error: 'Error subiendo archivos: ' + uploadError.message });
     }
 
-    // Crear participante
+    // Crear participante - TODO EN MAYÚSCULAS
     console.log('Creando participante en base de datos...');
     const nuevoParticipante = {
-      nombre,
-      apellidos,
-      ci,
+      nombre: nombre.toUpperCase(),
+      apellidos: apellidos.toUpperCase(),
+      ci: ci.toUpperCase(),
       fecha_nacimiento,
-      dorsal,
+      dorsal: dorsal, // Mantener como string para preservar ceros iniciales
       categoria_id,
-      equipo: equipo || null,
-      metodo_pago,
+      equipo: equipo ? equipo.toUpperCase() : null,
+      metodo_pago: metodo_pago.toUpperCase(),
       comprobante_url,
-      comunidad,
+      comunidad: comunidad.toUpperCase(),
       foto_anverso_url,
       foto_reverso_url,
       autorizacion_url
@@ -1027,7 +1027,7 @@ exports.checkDorsal = async (req, res) => {
     const { data, error } = await supabase
       .from('participantes')
       .select('dorsal')
-      .eq('dorsal', dorsal);
+      .eq('dorsal', dorsal); // Comparar como string
 
     if (error) {
       return res.status(500).json({ error: 'Error verificando dorsal' });
@@ -1108,48 +1108,6 @@ exports.getParticipantes = async (req, res) => {
     res.json({ participantes: data });
   } catch (err) {
     console.error('Error obteniendo participantes:', err);
-    res.status(500).json({ error: 'Error interno del servidor' });
-  }
-};
-
-// Obtener un participante por ID
-exports.getParticipanteById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const { data, error } = await supabase
-      .from('participantes')
-      .select(`
-        id,
-        nombre,
-        apellidos,
-        ci,
-        dorsal,
-        categoria_id,
-        comprobante_url,
-        metodo_pago,
-        created_at,
-        comunidad,
-        foto_anverso_url,
-        foto_reverso_url,
-        equipo,
-        fecha_nacimiento,
-        autorizacion_url,
-        categorias(id, nombre)
-      `)
-      .eq('id', id)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'Participante no encontrado' });
-      }
-      return res.status(500).json({ error: error.message });
-    }
-
-    res.json({ participante: data });
-  } catch (err) {
-    console.error('Error obteniendo participante:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
