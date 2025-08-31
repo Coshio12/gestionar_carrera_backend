@@ -1077,7 +1077,21 @@ exports.getParticipantes = async (req, res) => {
     const { data, error } = await supabase
       .from('participantes')
       .select(`
-        *,
+        id,
+        nombre,
+        apellidos,
+        ci,
+        dorsal,
+        categoria_id,
+        comprobante_url,
+        metodo_pago,
+        created_at,
+        comunidad,
+        foto_anverso_url,
+        foto_reverso_url,
+        equipo,
+        fecha_nacimiento,
+        autorizacion_url,
         categorias(nombre, hora_salida)
       `)
       .order('created_at', { ascending: false });
@@ -1089,6 +1103,48 @@ exports.getParticipantes = async (req, res) => {
     res.json({ participantes: data });
   } catch (err) {
     console.error('Error obteniendo participantes:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
+// Obtener un participante por ID
+exports.getParticipanteById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const { data, error } = await supabase
+      .from('participantes')
+      .select(`
+        id,
+        nombre,
+        apellidos,
+        ci,
+        dorsal,
+        categoria_id,
+        comprobante_url,
+        metodo_pago,
+        created_at,
+        comunidad,
+        foto_anverso_url,
+        foto_reverso_url,
+        equipo,
+        fecha_nacimiento,
+        autorizacion_url,
+        categorias(id, nombre)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ error: 'Participante no encontrado' });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    res.json({ participante: data });
+  } catch (err) {
+    console.error('Error obteniendo participante:', err);
     res.status(500).json({ error: 'Error interno del servidor' });
   }
 };
