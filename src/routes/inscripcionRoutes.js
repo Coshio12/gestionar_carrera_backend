@@ -45,13 +45,12 @@ router.post('/participantes/publico',
 );
 
 // Rutas protegidas (admin)
+// CRÍTICO: Las rutas específicas DEBEN ir ANTES que las genéricas
+router.get('/participantes/dorsal/:dorsal', authenticateToken, inscripcionController.getParticipanteByDorsal);
+router.get('/check-dorsal/:dorsal', authenticateToken, inscripcionController.checkDorsal);
+router.get('/archivo/:path', authenticateToken, inscripcionController.getArchivoUrl);
 router.get('/participantes', authenticateToken, inscripcionController.getParticipantes);
 router.get('/participantes/:id', authenticateToken, inscripcionController.getParticipanteById);
-
-// NUEVA RUTA: Buscar participante por dorsal (para registro rápido)
-router.get('/participantes/dorsal/:dorsal', authenticateToken, inscripcionController.getParticipanteByDorsal);
-
-router.get('/archivo/:path', authenticateToken, inscripcionController.getArchivoUrl);
 
 // NUEVA RUTA PARA CREAR PARTICIPANTE DESDE ADMIN (con archivos)
 router.post('/participantes', 
@@ -87,7 +86,6 @@ router.put('/participantes/:id',
 );
 
 router.delete('/participantes/:id', authenticateToken, inscripcionController.deleteParticipante);
-router.get('/check-dorsal/:dorsal', authenticateToken, inscripcionController.checkDorsal);
 
 router.post('/upload-archivos', 
   authenticateToken, 
