@@ -1100,6 +1100,12 @@ exports.getParticipantes = async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
+    // Debug temporal para verificar que el campo viene en la respuesta
+    console.log('Participantes desde BD:', data.map(p => ({
+      nombre: p.nombre,
+      autorizacion_url: p.autorizacion_url
+    })));
+
     res.json({ participantes: data });
   } catch (err) {
     console.error('Error obteniendo participantes:', err);
