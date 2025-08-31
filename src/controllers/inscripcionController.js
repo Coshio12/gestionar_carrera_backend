@@ -1100,11 +1100,10 @@ exports.getParticipantes = async (req, res) => {
       return res.status(500).json({ error: error.message });
     }
 
-    // Debug temporal para verificar que el campo viene en la respuesta
-    console.log('Participantes desde BD:', data.map(p => ({
-      nombre: p.nombre,
-      autorizacion_url: p.autorizacion_url
-    })));
+    // DEBUG: Verificar si el campo viene desde Supabase
+    console.log('=== DEBUG BACKEND ===');
+    console.log('Primer participante desde Supabase:', JSON.stringify(data[0], null, 2));
+    console.log('autorizacion_url del primer participante:', data[0]?.autorizacion_url);
 
     res.json({ participantes: data });
   } catch (err) {
