@@ -70,6 +70,47 @@ exports.getParticipanteById = async (req, res) => {
   }
 };
 
+// NUEVO: Obtener participante por dorsal
+exports.getParticipanteByDorsal = async (req, res) => {
+  try {
+    const { dorsal } = req.params;
+
+    if (!dorsal) {
+      return res.status(400).json({ error: 'Dorsal es requerido' });
+    }
+
+    console.log('Buscando participante con dorsal:', dorsal);
+
+    const { data, error } = await supabase
+      .from('participantes')
+      .select(`
+        id,
+        nombre,
+        apellidos,
+        ci,
+        dorsal,
+        categoria_id,
+        categorias(id, nombre)
+      `)
+      .eq('dorsal', dorsal)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        console.log('Participante no encontrado con dorsal:', dorsal);
+        return res.status(404).json({ error: 'Participante no encontrado' });
+      }
+      return res.status(500).json({ error: error.message });
+    }
+
+    console.log('Participante encontrado:', data);
+    res.json({ participante: data });
+  } catch (err) {
+    console.error('Error obteniendo participante por dorsal:', err);
+    res.status(500).json({ error: 'Error interno del servidor' });
+  }
+};
+
 // Actualizar participante
 exports.updateParticipante = async (req, res) => {
   try {
@@ -129,7 +170,7 @@ exports.updateParticipante = async (req, res) => {
     const { data: existingParticipant, error: checkError } = await supabase
       .from('participantes')
       .select('id, ci, dorsal')
-      .or(`ci.eq.${ci},dorsal.eq.${dorsal}`)
+      .or(`ci.eq.${ci.toUpperCase()},dorsal.eq.${dorsal}`)
       .neq('id', id);
 
     if (checkError) {
@@ -139,11 +180,11 @@ exports.updateParticipante = async (req, res) => {
 
     if (existingParticipant && existingParticipant.length > 0) {
       const existing = existingParticipant[0];
-      if (existing.ci === ci) {
+      if (existing.ci === ci.toUpperCase()) {
         console.log('Error: CI ya existe en otro participante');
         return res.status(400).json({ error: 'Ya existe otro participante con este CI' });
       }
-      if (existing.dorsal === dorsal) { // Ahora comparamos como string
+      if (existing.dorsal === dorsal) {
         console.log('Error: Dorsal ya existe en otro participante');
         return res.status(400).json({ error: 'Ya existe otro participante con este dorsal' });
       }
@@ -842,7 +883,7 @@ exports.createParticipanteAdmin = async (req, res) => {
         console.log('Error: CI ya existe');
         return res.status(400).json({ error: 'Ya existe un participante con este CI' });
       }
-      if (existing.dorsal === dorsal) { // Comparación como string
+      if (existing.dorsal === dorsal) {
         console.log('Error: Dorsal ya existe');
         return res.status(400).json({ error: 'Ya existe un participante con este dorsal' });
       }

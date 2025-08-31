@@ -47,6 +47,10 @@ router.post('/participantes/publico',
 // Rutas protegidas (admin)
 router.get('/participantes', authenticateToken, inscripcionController.getParticipantes);
 router.get('/participantes/:id', authenticateToken, inscripcionController.getParticipanteById);
+
+// NUEVA RUTA: Buscar participante por dorsal (para registro rápido)
+router.get('/participantes/dorsal/:dorsal', authenticateToken, inscripcionController.getParticipanteByDorsal);
+
 router.get('/archivo/:path', authenticateToken, inscripcionController.getArchivoUrl);
 
 // NUEVA RUTA PARA CREAR PARTICIPANTE DESDE ADMIN (con archivos)
