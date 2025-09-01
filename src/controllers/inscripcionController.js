@@ -5,6 +5,22 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// Función helper para validar año de nacimiento
+const validateBirthYear = (birthDate) => {
+  const birthYear = birthDate.getFullYear();
+  console.log('=== VALIDACIÓN FECHA ===');
+  console.log('Año de nacimiento:', birthYear);
+  console.log('Validación (1900 <= año <= 2011):', birthYear >= 1900 && birthYear <= 2011);
+  
+  if (birthYear < 1900 || birthYear > 2011) {
+    return {
+      valid: false,
+      error: 'Solo se admiten participantes nacidos entre los años 1900 y 2011 (ambos incluidos)'
+    };
+  }
+  return { valid: true };
+};
+
 // Obtener todas las categorías
 exports.getCategorias = async (req, res) => {
   try {
@@ -150,11 +166,12 @@ exports.updateParticipante = async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
-    // Validar año de nacimiento - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
+    // CORREGIDO: Validar año de nacimiento usando la función helper
     const birthDate = new Date(fecha_nacimiento);
-    if (birthDate.getFullYear() <= 2011) {
-      console.log('Error: Año posterior a 2011');
-      return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
+    const birthValidation = validateBirthYear(birthDate);
+    if (!birthValidation.valid) {
+      console.log('Error:', birthValidation.error);
+      return res.status(400).json({ error: birthValidation.error });
     }
 
     // Calcular edad para validar autorización
@@ -479,10 +496,11 @@ exports.createParticipantePublico = async (req, res) => {
       age--;
     }
 
-    // Validar año mínimo - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
-    if (birthDate.getFullYear() <= 2011) {
-      console.log('Error: Año posterior a 2011');
-      return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
+    // CORREGIDO: Validar año de nacimiento usando la función helper
+    const birthValidation = validateBirthYear(birthDate);
+    if (!birthValidation.valid) {
+      console.log('Error:', birthValidation.error);
+      return res.status(400).json({ error: birthValidation.error });
     }
 
     // Validar autorización para menores de edad
@@ -853,10 +871,11 @@ exports.createParticipanteAdmin = async (req, res) => {
       age--;
     }
 
-    // Validar año mínimo - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
-    if (birthDate.getFullYear() <= 2011) {
-      console.log('Error: Año posterior a 2011');
-      return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
+    // CORREGIDO: Validar año de nacimiento usando la función helper
+    const birthValidation = validateBirthYear(birthDate);
+    if (!birthValidation.valid) {
+      console.log('Error:', birthValidation.error);
+      return res.status(400).json({ error: birthValidation.error });
     }
 
     // Validar autorización para menores de edad
