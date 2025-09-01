@@ -152,7 +152,7 @@ exports.updateParticipante = async (req, res) => {
 
     // Validar año de nacimiento - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
     const birthDate = new Date(fecha_nacimiento);
-    if (birthDate.getFullYear() > 2011) {
+    if (birthDate.getFullYear() <= 2011) {
       console.log('Error: Año posterior a 2011');
       return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
     }
@@ -480,7 +480,7 @@ exports.createParticipantePublico = async (req, res) => {
     }
 
     // Validar año mínimo - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
-    if (birthDate.getFullYear() > 2011) {
+    if (birthDate.getFullYear() <= 2011) {
       console.log('Error: Año posterior a 2011');
       return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
     }
@@ -854,7 +854,7 @@ exports.createParticipanteAdmin = async (req, res) => {
     }
 
     // Validar año mínimo - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
-    if (birthDate.getFullYear() > 2011) {
+    if (birthDate.getFullYear() <= 2011) {
       console.log('Error: Año posterior a 2011');
       return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
     }
