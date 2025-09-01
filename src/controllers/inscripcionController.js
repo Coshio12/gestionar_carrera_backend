@@ -150,11 +150,11 @@ exports.updateParticipante = async (req, res) => {
       return res.status(400).json({ error: 'Faltan campos requeridos' });
     }
 
-    // Validar año de nacimiento
+    // Validar año de nacimiento - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
     const birthDate = new Date(fecha_nacimiento);
-    if (birthDate.getFullYear() < 2011) {
-      console.log('Error: Año superior a 2011');
-      return res.status(400).json({ error: 'Solo se admiten participantes nacidos desde el año 2011 en adelante' });
+    if (birthDate.getFullYear() > 2011) {
+      console.log('Error: Año posterior a 2011');
+      return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
     }
 
     // Calcular edad para validar autorización
@@ -479,10 +479,10 @@ exports.createParticipantePublico = async (req, res) => {
       age--;
     }
 
-    // Validar año minimo
-    if (birthDate.getFullYear() < 2011) {
-      console.log('Error: Año superior a 2011');
-      return res.status(400).json({ error: 'Solo se admiten participantes nacidos desde el año 2011 en adelante' });
+    // Validar año mínimo - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
+    if (birthDate.getFullYear() > 2011) {
+      console.log('Error: Año posterior a 2011');
+      return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
     }
 
     // Validar autorización para menores de edad
@@ -853,10 +853,10 @@ exports.createParticipanteAdmin = async (req, res) => {
       age--;
     }
 
-    // Validar año mínimo
-    if (birthDate.getFullYear() < 2011) {
-      console.log('Error: Año superior a 2011');
-      return res.status(400).json({ error: 'Solo se admiten participantes nacidos desde el año 2011 en adelante' });
+    // Validar año mínimo - CORREGIDO: solo se admiten participantes nacidos en 2011 o antes
+    if (birthDate.getFullYear() > 2011) {
+      console.log('Error: Año posterior a 2011');
+      return res.status(400).json({ error: 'Solo se admiten participantes nacidos en el año 2011 o anteriores' });
     }
 
     // Validar autorización para menores de edad
