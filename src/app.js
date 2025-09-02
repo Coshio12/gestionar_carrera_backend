@@ -10,7 +10,10 @@ app.use(cors({
     "http://localhost:5173", // (si usas Vite en desarrollo)
     "http://localhost:10000", // (si usas CRA en desarrollo)
     "https://doblesanroque.vercel.app",
-    "http://localhost:3000"  // (si usas CRA en desarrollo)
+    "http://localhost:3000",  // (si usas CRA en desarrollo)
+    "http://localhost:3000",
+    "https://total360sport.com",
+    "https://www.total360sport.com"
 
   ],
   allowedHeaders: ["Content-Type", "Authorization"],
