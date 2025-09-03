@@ -6,4 +6,3 @@ app.listen(PORT, () => {
   console.log(`Servidor backend corriendo en puerto ${PORT}`);
   console.log(`URL completa: http://localhost:${PORT}`);
 });
-
