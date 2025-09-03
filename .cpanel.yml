@@ -1,0 +1,5 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/totalspo/public_html/api
+    - /bin/cp -R * $DEPLOYPATH
