@@ -6,51 +6,43 @@ const app = express();
 // CORS más permisivo para desarrollo
 app.use(cors({
   origin: [
-    "https://gestionar-carrera-frontend-g4ay0abwd-jose-cossios-projects.vercel.app", // dominio de Vercel
-    "http://localhost:5173", // (si usas Vite en desarrollo)
-    "http://localhost:10000", // (si usas CRA en desarrollo)
+    "https://gestionar-carrera-frontend-g4ay0abwd-jose-cossios-projects.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:10000", 
     "https://doblesanroque.vercel.app",
-    "http://localhost:3000",  // (si usas CRA en desarrollo)
     "http://localhost:3000",
     "https://total360sport.com",
     "https://www.total360sport.com"
-
   ],
   allowedHeaders: ["Content-Type", "Authorization"],
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
-// Middleware para parsear JSON
+
 app.use(express.json());
 
-// Middleware para logging de requests (temporal para debug)
+// Middleware para logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
 
-// Importar la ruta de prueba
+// Importar las rutas
 const testRoutes = require('./routes/TestRoutes');
-app.use('/api', testRoutes);
-
-// Importar y usar las rutas de autenticación
 const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
-
-// Importar y usar las rutas de inscripción
 const inscripcionRoutes = require('./routes/inscripcionRoutes');
-app.use('/api/inscripciones', inscripcionRoutes);
-
-// Importar y usar las rutas de tiempo
 const tiempoRoutes = require('./routes/tiempoRoutes');
-app.use('/api/tiempos', tiempoRoutes);
-
-// Importar y usar las rutas de categorías
 const categoriaRoutes = require('./routes/categoriaRoutes');
-app.use('/api/categorias', categoriaRoutes);
-
-// Importar y usar las rutas de etapas
 const etapaRoutes = require('./routes/etapaRoutes');
+const publicRoutes = require('./routes/publicRoutes'); // NUEVO
+
+// Configurar las rutas
+app.use('/api', testRoutes);
+app.use('/api/public', publicRoutes); // NUEVO - Rutas públicas SIN autenticación
+app.use('/api/auth', authRoutes);
+app.use('/api/inscripciones', inscripcionRoutes);
+app.use('/api/tiempos', tiempoRoutes);
+app.use('/api/categorias', categoriaRoutes);
 app.use('/api/etapas', etapaRoutes);
 
 // Ruta de health check
