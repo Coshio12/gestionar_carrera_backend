@@ -12,6 +12,7 @@ app.use(cors({
     "https://doblesanroque.vercel.app",
     "http://localhost:3000",
     "https://total360sport.com",
+    "https://doblechaguaya.total360sport.com",
     "https://www.total360sport.com"
   ],
   allowedHeaders: ["Content-Type", "Authorization"],
